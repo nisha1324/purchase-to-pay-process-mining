@@ -1,0 +1,10 @@
+{
+  "citation": "van Dongen, Boudewijn (2019). BPI Challenge 2019. 4TU.ResearchData. Dataset. https://doi.org/10.4121/uuid:d06aff4b-79f0-45e6-8ec8-e19730c248f1",
+  "doi": "10.4121/uuid:d06aff4b-79f0-45e6-8ec8-e19730c248f1",
+  "licence": "CC BY 4.0",
+  "xes_md5": "4eb909242351193a61e1c15b9c3cc814",
+  "cases": 251734,
+  "events": 1595923,
+  "cases_csv_sha256": "010dc79e6fa36b419b45f9df6b078d7b46bfa8780d06e1725b937d1a6512c9bc",
+  "events_csv_sha256": "2dd0df3517dd15f0bc33f49ae42fc81b9a09f730feb2f32aad8c07e175cf8dbd"
+}
