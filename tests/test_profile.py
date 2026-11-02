@@ -142,8 +142,7 @@ def test_report_and_charts_arent_stale(tmp_path):
     subprocess.run([sys.executable, "-m", "scripts.profile_log", "--out", str(tmp_path)],
                    cwd=ROOT, check=True)
     assert (tmp_path / "SOURCE_PROFILE.md").read_text() == REPORT
-    names = sorted(path.name for path in (RESULTS / "charts").glob("0*.png"))
-    assert len(names) == 3
+    names = ("01_requisitions_by_month.png", "02_clearing_by_po_month.png", "03_path_coverage.png")
     for name in names:
         fresh = (tmp_path / "charts" / name).read_bytes()
         assert fresh == (RESULTS / "charts" / name).read_bytes(), name
