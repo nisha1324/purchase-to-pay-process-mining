@@ -74,3 +74,26 @@ RETRO_MIN_DAYS = 7
 
 # A vendor needs this many items in the cohort to count as a cluster that never clears.
 CLUSTER_MIN_ITEMS = 20
+
+# The log's last day, in Dutch time. An item with nothing by then is unfinished, not finished.
+LOG_END_DAY = "2019-01-18"
+
+# A day with this many clearings is a payment run; the rest are one-off clearings.
+RUN_MIN_ITEMS = 100
+
+# A run this big is one of the two main runs of the month. Sized on the data: no day in the log
+# falls between 2,221 and 4,250 items.
+MAIN_RUN_MIN_ITEMS = 4_000
+
+# Main runs on or before this day of the month are "early"; later ones are "late".
+EARLY_RUN_LAST_DAY = 14
+
+# A vendor needs this many items on main runs before its run pattern is read, and this share of
+# them in one of the two runs to count as tied to it.
+RUN_TIE_MIN_ITEMS = 100
+RUN_TIE_SHARE = 0.8
+
+# The log has no payment terms, so a vendor's term is implied: its fastest 5% of invoices, measured
+# from invoice date to first clearing, on vendors with enough items for that to mean anything.
+TERM_QUANTILE = 0.05
+TERM_MIN_ITEMS = 30

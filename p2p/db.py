@@ -5,7 +5,9 @@ from pathlib import Path
 import duckdb
 
 from p2p.source import (BURST_MIN_ITEMS, CASES_CSV, CHECK_END, CHECK_START, CLUSTER_MIN_ITEMS,
-                        EVENTS_CSV, FOLLOW_UP_END, FOLLOW_UP_START, RETRO_MIN_DAYS, ROOT,
+                        EARLY_RUN_LAST_DAY, EVENTS_CSV, FOLLOW_UP_END, FOLLOW_UP_START,
+                        LOG_END_DAY, MAIN_RUN_MIN_ITEMS, RETRO_MIN_DAYS, ROOT, RUN_MIN_ITEMS,
+                        RUN_TIE_MIN_ITEMS, RUN_TIE_SHARE, TERM_MIN_ITEMS, TERM_QUANTILE,
                         VENDOR_DATE_FLOOR, WINDOW_END, WINDOW_START)
 
 SQL_DIR = ROOT / "sql"
@@ -20,6 +22,14 @@ PARAMETERS = {
     "vendor_floor": VENDOR_DATE_FLOOR,
     "retro_days": RETRO_MIN_DAYS,
     "cluster_min": CLUSTER_MIN_ITEMS,
+    "log_end": LOG_END_DAY,
+    "run_floor": RUN_MIN_ITEMS,
+    "main_run_floor": MAIN_RUN_MIN_ITEMS,
+    "early_last_day": EARLY_RUN_LAST_DAY,
+    "tie_min": RUN_TIE_MIN_ITEMS,
+    "tie_share": RUN_TIE_SHARE,
+    "term_q": TERM_QUANTILE,
+    "term_min": TERM_MIN_ITEMS,
 }
 
 
