@@ -1,0 +1,7 @@
+stage,items,unfinished,finished_only_median,median_days,p75_days,p90_days
+PO to first goods receipt,236192,15179,9.0,11.0,21.0,50.0
+PO to vendor invoice date,236192,26988,9.0,11.0,24.0,140.0
+Invoice date to invoice recorded,209202,12,10.0,10.0,28.0,46.0
+Invoice recorded to first clearing,210692,27702,42.0,45.0,76.0,101.0
+Goods receipt to first clearing,221013,38205,63.0,66.0,93.0,114.0
+PO to first clearing,236192,52818,77.0,85.0,118.0,164.0
