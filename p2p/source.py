@@ -59,3 +59,18 @@ FOLLOW_UP_END = "2018-07-01"
 
 # Same activity, same account, same minute, this many events or more: a bulk run.
 BURST_MIN_ITEMS = 50
+
+# A second window for the compliance rules, to see whether a rate holds outside the
+# cohort. These items had 3.5 to 6.5 months of follow-up, so it's a check, not a result.
+CHECK_START = "2018-07-01"
+CHECK_END = "2018-10-01"
+
+# Vendor invoice dates before this year are treated as typing errors (see 3.2 in the
+# source profile). Late-2017 dates are kept, because they can be real.
+VENDOR_DATE_FLOOR = "2017-01-01"
+
+# An invoice this many days older than its PO counts as clearly retrospective.
+RETRO_MIN_DAYS = 7
+
+# A vendor needs this many items in the cohort to count as a cluster that never clears.
+CLUSTER_MIN_ITEMS = 20
