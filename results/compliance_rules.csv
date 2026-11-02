@@ -1,0 +1,22 @@
+rule,title,source,group,removed,applies_to,flagged,left_to_review,documents,vendors,top_vendor_items,share_of_items_pct,share_of_value_pct,check_applies_to,check_left
+after_invoice_before_goods,Invoice-after-GR flow: invoice recorded before the goods,Publisher,control,,7003,0,0,0,0,0,0.0,0.0,2324,0
+after_cleared_no_goods,Invoice-after-GR flow: cleared before or without goods,Publisher,control,,6551,0,0,0,0,0,0.0,0.0,2262,0
+consignment_invoiced,Consignment: any invoice or clearing on the PO,Publisher,control,,7885,0,0,0,0,0,0.0,0.0,3330,0
+two_way_goods,2-way flow: any goods receipt,Publisher,control,,308,0,0,0,0,0,0.0,0.0,98,0
+two_way_approved_after_invoice,2-way flow: first approval after the invoice was recorded,Audit test,control,,299,0,0,0,0,0,0.0,0.0,96,0
+goods_before_po,Goods receipt dated before the PO,Audit test,control,,128267,0,0,0,0,0,0.0,0.0,56036,0
+invoice_recorded_before_po,Invoice recorded before the PO,Audit test,control,,119123,0,0,0,0,0,0.0,0.0,50596,0
+sod_po_invoice,Same account raised the PO and recorded the invoice,Audit test,control,,119123,0,0,0,0,0,0.0,0.0,50596,0
+sod_goods_invoice,Same account recorded the goods and the invoice,Audit test,control,,118709,0,0,0,0,0,0.0,0.0,50431,0
+sod_po_clear,Same account raised the PO and cleared the invoice,Audit test,control,,117647,0,0,0,0,0,0.0,0.0,48004,0
+cleared_no_goods,Main flow: cleared with no goods standing,Publisher,review,invoice reversed too,111008,432,51,44,25,11,0.046,0.083,45675,35
+cleared_before_goods,Main flow: cleared before the first goods receipt,Publisher,review,invoice reversed too,110662,55,53,20,18,27,0.048,0.243,45537,20
+block_removed_before_goods,Main flow: payment block removed before goods,Publisher,review,invoice reversed too,31139,340,225,128,58,58,0.723,1.016,13390,64
+cleared_before_invoice,Cleared before the invoice was recorded,Audit test,review,invoice reversed too,117411,19,10,9,5,3,0.009,0.008,47913,4
+cleared_after_delete,Cleared after the item was flagged deleted,Audit test,review,invoice reversed too,117647,104,96,90,59,12,0.082,5.684,48004,11
+extra_clearing,Cleared more times than invoices recorded,Audit test,review,cancellation or debit memo,117647,1040,140,81,15,42,0.119,0.206,48004,52
+retro_po_three_way,3-way flows: vendor invoice dated before the PO,Audit test,review,7 days or less,117409,1766,1247,242,126,618,1.062,4.869,50420,490
+retro_po_two_way,2-way flow: vendor invoice dated before the PO,Audit test,review,7 days or less,299,264,186,134,129,10,62.207,60.58,96,34
+sod_po_goods,Same account raised the PO and recorded the goods,Audit test,review,bulk runs,128267,2706,2673,1815,313,515,2.084,12.851,56036,1288
+sod_invoice_clear,Same account recorded the invoice and cleared it,Audit test,review,cancellation or debit memo,117411,1934,51,33,12,31,0.043,0.122,47913,1
+sod_invoice_block,Same account recorded the invoice and removed its block,Audit test,review,"bulk runs, cancellation or debit memo",32452,993,232,85,56,37,0.715,0.658,13938,105
