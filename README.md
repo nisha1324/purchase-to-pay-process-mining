@@ -1,6 +1,6 @@
 # Purchase-to-pay process mining: where invoices stall and rules break
 
-> **Status: in progress.** Parts 1 and 2 of 5 are done (source and profile, then compliance). See the [plan](#plan).
+> **Status: in progress.** Parts 1, 2 and 3 of 5 are done (source and profile, compliance, bottlenecks). See the [plan](#plan).
 
 A company's purchase-to-pay process is meant to be simple: raise an order, receive the goods, match
 the invoice, pay. In a real ERP system it rarely is. This project uses **process mining** on a real
@@ -152,13 +152,75 @@ with one vendor.
 value field is stamped on each event. The log also shows no approval limits, payment dates or
 bank payments. Same-day events count as in order, so a same-day breach would be missed.
 
+## Part 3: where items wait, and why
+
+Full results: [`results/BOTTLENECKS.md`](results/BOTTLENECKS.md). Supporting tables:
+[`results/wait_stages.csv`](results/wait_stages.csv), [`results/run_calendar.csv`](results/run_calendar.csv)
+and [`results/vendor_terms.csv`](results/vendor_terms.csv).
+
+Invoices look slow: a median of 65 days from invoice date to clearing. But a process map only shows
+where time passes, not whether anything is stuck. This part splits that time into what's agreed,
+what's scheduled and what's actually late, on the 3-way items created from January to June 2018.
+
+**Most of the wait looks agreed or scheduled, not stuck.** On 105,356 items, the mean 83 days from PO
+to first clearing breaks down like this, and only 13.8% of items were unfinished when the invoice fell due:
+
+| Part | Mean days | Share |
+|---|---|---|
+| PO to the vendor's invoice date | 13.6 | 16.3% |
+| Implied payment term | 51.2 | 61.6% |
+| Process overrun | 4.1 | 5.0% |
+| Waiting for a payment run | 14.2 | 17.1% |
+
+![Where the days go](results/charts/09_where_the_days_go.png)
+
+**The log has no payment terms, so they're implied.** A vendor's term here is the time from invoice
+date to clearing on its fastest 5% of invoices. That's an inference, so it was tested. Set on January to
+March invoices only, the term moves a week or less for 171 of 181 vendors in April to June, and
+4.7% of later invoices beat it, close to the 5% expected. Setting it at the fastest 1% or 10% moves
+the run wait only between 12.2 and 16.1 days.
+
+![Process map](results/charts/06_process_map.png)
+
+**Payment runs set the rhythm.** 20 days hold 79.9% of all clearing events, and 81.2% of items first
+cleared on a main run. There are two main runs a month, and 126 of 148 larger vendors sit mostly in one of
+them. A monthly run would mean about 15 days' wait on average, close to the 14.2 measured.
+
+![Payment calendar](results/charts/08_payment_calendar.png)
+
+**There was no slowdown.** Taking the median of cleared items suggests clearing got much faster late in
+the year, but that's just the log stopping. A Kaplan-Meier estimate, which counts items still open, stays at
+81-87 days from January to September.
+
+![Median days to clearing by PO month](results/charts/07_days_to_clearing_by_month.png)
+
+**Payment blocks are the main real hold-up.** They cause 61.7% of overrun days. The invoice-before-goods rule explains
+only 34.7% of blocks, and those show no added wait against comparable items. Another 48.4% of blocks have no
+reason visible in the log, and those add about 7 days.
+
+### So what for the business?
+
+- **Don't report invoice-to-clearing time as a process bottleneck.** Most of it is the term and the
+  run calendar, so a team sent to fix it would be working on the wrong thing.
+- **The payment calendar is a treasury decision.** Weekly Thursday runs would cut the wait from
+  14.2 to 2.3 days. Vendors would be paid 11.8 days sooner, and cash would leave 11.6 days sooner, weighted by value. That's a
+  trade-off, not a fix.
+- **The real process work is narrow.** Sales is 28.4% of items but 47.5% of overrun days, and 10 vendors hold 45.2%
+  of them. Start with the unexplained blocks and late invoice recording there.
+- **Ask for one thing first:** the vendor master's payment terms. Real terms replace the inference
+  and make these figures exact.
+
+**What this can't show:** the implied term could understate overrun if a vendor is usually paid late.
+The log shows blocks being removed but rarely set, so the unexplained ones may have a reason that
+isn't recorded, and the extra days compare similar items without proving cause.
+
 ## Plan
 
 1. ✅ **Source, snapshot and profile.** Verified download, strict parser, data-quality traps.
 2. ✅ **Compliance.** 21 rule checks in DuckDB SQL, each sized as a share of items, plus an explanation
    of the clearing gap and a review list.
-3. **Bottlenecks.** A process map, waiting times that handle unfinished items, and how much of the
-   wait comes from the payment-run calendar.
+3. ✅ **Bottlenecks.** A process map, waiting times that count unfinished items, and how much of the
+   wait comes from terms, the run calendar and late steps.
 4. **Rework and automation.** Changes, cancellations and repeat work by vendor and spend area,
    turned into a ranked list of what to fix first.
 5. **CI and write-up.** Automated checks, TL;DR, ranked recommendations and limitations.
@@ -171,7 +233,8 @@ source .venv/bin/activate
 
 python -m scripts.profile_log     # Part 1 report from the committed snapshot (about 25 seconds)
 python -m scripts.compliance      # Part 2 report, rule table and review list (about 20 seconds)
-pytest                            # about 4 minutes
+python -m scripts.bottlenecks     # Part 3 report, tables and charts (about 20 seconds)
+pytest                            # about 3 minutes
 
 # Optional, to rebuild the snapshot from the source:
 python -m scripts.download_data   # 17-730 MB depending on the host, verified by MD5
@@ -180,21 +243,23 @@ python -m scripts.build_snapshot  # about 3 minutes
 
 ## Tests
 
-87 tests. The headline numbers are recounted in plain pandas, with none of the project's SQL. Each
+172 tests. The headline numbers are recounted in plain pandas, with none of the project's SQL. Each
 compliance rule also runs on a small hand-written log, so it can be seen both failing and passing,
-including edge cases such as a Dutch midnight, a same-day receipt and a bulk run. The
-parser and downloader are tested on small hand-written files, including truncated and wrong
-copies. A rebuild from the raw log must match the committed files byte for byte, and the reports
-and charts must match a fresh run. To check that the tests can fail, 47 bugs were planted one at a
-time, such as a wrong follow-up window or ignoring a reversal. 46 were caught straight away; the
-other showed a table column wasn't being recounted, so a test was added and it's now caught too.
+including edge cases such as a Dutch midnight, a same-day receipt and a bulk run. The wait breakdown
+is worked out by hand on a small log too, and the waiting-time estimate is checked against a plain
+day-by-day loop on the real data. The parser and downloader are tested on small hand-written files,
+including truncated and wrong copies. A rebuild from the raw log must match the committed files byte
+for byte, and the reports and charts must match a fresh run. To check that the tests can fail, 86
+bugs were planted one at a time, such as a wrong follow-up window or ignoring a reversal. 83 were
+caught straight away. The other 3 showed gaps in the tests, so tests were added and they're now
+caught too.
 
 ## Layout
 
 ```
 data/              snapshot (events, cases) and SNAPSHOT.json with its hashes
-p2p/               source details, XES parser, DuckDB helper
-scripts/           download, snapshot, profile and compliance steps
+p2p/               source details, XES parser, DuckDB helper, waiting-time estimate
+scripts/           download, snapshot, profile, compliance and bottleneck steps
 sql/               table definitions and every query behind the report
 results/           generated report and charts
 tests/             pytest suite
