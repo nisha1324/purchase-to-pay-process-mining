@@ -1,0 +1,16 @@
+step,kind,n_touches,share_of_touches,n_accounts,n_vendors,n_documents,top10_vendor_share,under_5_docs,single_doc
+Goods receipt,Core,63386,0.3363,221,1306,29877,0.2744,60172,49542
+Invoice recording,Core,58364,0.3097,25,1447,32184,0.2863,55504,51703
+PO creation,Core,33157,0.1759,147,1500,31381,0.1713,31868,26327
+Quantity change,Rework,9067,0.0481,135,700,5014,0.3877,9031,8475
+Order confirmation,Core,4624,0.0245,6,76,4167,0.7574,3855,1977
+Payment block,Control,4099,0.0217,10,531,3489,0.3028,1635,602
+Price change,Rework,3980,0.0211,109,646,3048,0.2367,3952,3586
+Deletion or block,Rework,2854,0.0151,119,447,2225,0.3896,2840,2424
+Invoice reversal,Rework,2572,0.0136,16,579,2024,0.1734,2227,2034
+Clearing,Core,2070,0.011,19,487,1734,0.2696,1302,975
+Other PO change,Rework,1824,0.0097,104,318,1454,0.3251,1818,1635
+Goods reversal,Rework,993,0.0053,89,234,643,0.3283,993,969
+Other,Other,733,0.0039,13,85,172,0.4557,574,145
+Requisition,Core,586,0.0031,23,112,582,0.3942,357,129
+PO approval,Control,156,0.0008,36,44,102,0.6923,142,123
