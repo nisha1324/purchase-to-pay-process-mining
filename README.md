@@ -1,6 +1,8 @@
 # Purchase-to-pay process mining: where invoices stall and rules break
 
-> **Status: in progress.** Parts 1 to 4 of 5 are done (source and profile, compliance, bottlenecks, rework and automation). See the [plan](#plan).
+[![CI](https://github.com/nisha1324/purchase-to-pay-process-mining/actions/workflows/ci.yml/badge.svg)](https://github.com/nisha1324/purchase-to-pay-process-mining/actions/workflows/ci.yml)
+
+> **Status: complete** (all 5 parts: source and profile; compliance; bottlenecks; rework and automation; CI and this write-up). See the [recommendations](#recommendations-ranked) and [limitations](#limitations).
 
 A company's purchase-to-pay process is meant to be simple: raise an order, receive the goods, match
 the invoice, pay. In a real ERP system it rarely is. This project uses **process mining** on a real
@@ -14,6 +16,16 @@ or accounts-payable lead and an internal auditor would ask:
 
 It ties to business analysis and digital transformation: instead of asking people how a process
 works, it measures what the system recorded.
+
+## TL;DR
+
+- **The controls held, and most of the alarming counts were corrections.** 10 of 21 rules had no failures, and all 3 main-flow rules fail on under 1% of items. A plain count of invoices "cleared with no goods" is about 8 times too high (432 against 51) until reversed invoices are taken out.
+- **Most of the wait is agreed or scheduled, not stuck.** Of the mean 83.0 days from PO to first clearing, 61.6% is the implied payment term and 17.1% is waiting for a payment run. Process overrun is 5.0%, and only 13.8% of items were unfinished when the invoice fell due.
+- **Payment blocks are the main real hold-up.** They're behind 61.7% of overrun days. 48.4% of blocks have no reason visible in the log, and those go with about 7 extra days.
+- **One kind of rework costs time: a PO price changed after the invoice is in.** It affects 1,860 items holding 14.6% of value. Of those that can be timed, 92.2% were blocked, against 25.0% with no rework, and they cleared 4.0 days later than comparable items.
+- **Invoice recording is the biggest target for automation.** It takes 58,364 one-at-a-time touches by 25 accounts, 31.0% of all hand work, and late recording is behind 38.1% of overrun days.
+- **The two smaller flows clear less because of a few groups that may be settled outside this log.** 11 vendors hold 76% of the uncleared invoice-after-GR items, and the 2-way flow is one company and one login. One question to finance decides most of the gap.
+- **A dashboard on the raw fields would have misled.** Summing the value field overstates it 28.6 times, and the apparent year-end slowdown is just the log stopping.
 
 ## Data
 
@@ -268,6 +280,51 @@ by the buyer who raised them, within days. 2,621 items had an invoice cancelled 
 inferred from timing, though a stricter bulk rule barely changes the big steps. The log doesn't say why
 anything was changed, deleted or cancelled, and extra days compare similar items without proving cause.
 
+## Part 5: CI on every push
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
+
+1. Installs the exact package versions from [`requirements-lock.txt`](requirements-lock.txt), the ones the committed outputs were made with.
+2. Reruns all 4 reports from the committed snapshot and fails if any report, table or chart changes by a single byte.
+3. Runs `pytest`, including the independent pandas recounts and the check that the [TL;DR](#tldr) and the [recommendations](#recommendations-ranked) still match the result files. Only the raw rebuild test skips, because the raw log isn't in the repo.
+
+**So what for the business:** a number in this README can't drift away from the code that produced it without the badge turning red. An auditor or process owner can trust a figure here without rerunning it.
+
+## Recommendations, ranked
+
+For a procurement lead, an accounts-payable (AP) lead, finance, internal audit and treasury. Ranked by how much delay
+or hand work a fix removes and how directly the evidence points at it. All figures are from the 2018 items measured in
+Parts 2 to 4, as counts and shares, because the log's values aren't real money.
+
+| # | Recommendation | Evidence | Owner |
+|---|---|---|---|
+| 1 | **Fix PO prices before the invoice arrives.** Keep contract prices current in the system, or agree a price tolerance, starting with Packaging. | A price changed after the invoice: 1,860 items, 14.6% of value, 92.2% blocked against 25.0%, and 4.0 more days to clear. Packaging holds 31.6% of them. | Procurement lead |
+| 2 | **Record a reason for every payment block, then review the unexplained ones vendor by vendor.** | Blocks are behind 61.7% of overrun days. 48.4% of blocks have no visible reason and go with about 7 extra days. The unexplained rate runs from 0% to 40% across vendors with 100+ items (10th to 90th percentile). | AP lead |
+| 3 | **Bring in e-invoicing or invoice capture for the whole AP team.** | 58,364 touches by 25 accounts, 31.0% of hand work, and late recording is behind 38.1% of overrun days. It's spread over 1,447 vendors, so a few vendor deals won't cover it. | AP lead |
+| 4 | **Ask finance whether these groups are settled outside this system.** | 1,358 invoice-after-GR items at 11 vendors (76% of that flow's uncleared items), 1,058 logistics items with service sheets and no invoice, 561 subcontractor invoices with none cleared, and 180 open 2-way government payments. | Finance controller |
+| 5 | **Work through the review list, with reversals filtered out first.** Start with items failing two or more rules and with one account raising the PO and recording the goods. | 4,695 items (3.5% of items, 15.6% of value), 241 failing two or more rules. One account on both PO and goods: 2.08% of items but 12.85% of value. | Internal audit |
+| 6 | **Treat the payment-run calendar as a treasury decision, not a process fix.** | Weekly Thursday runs would cut the wait from 14.2 to 2.3 days, so vendors are paid 11.8 days sooner, but cash also leaves 11.6 days sooner, weighted by value. | Treasury |
+| 7 | **Take order confirmations electronically from the 10 vendors that send most of them.** | 4,624 touches by 6 accounts, 75.7% from 10 vendors, and 19.1% already arrive through a system account. | Procurement operations |
+| 8 | **Before cutting withdrawn POs or quantity changes, find out why they happen.** Ask buyers on a sample, and check whether the quantity changes are rolling call-offs. | 4,448 items deleted unused, a median 1 day after the PO. Quantity changes are the largest rework (9,067 touches) but add no wait (+0.3 days). | Purchasing lead |
+
+**Data to ask for first,** because each one turns an inference here into a fact: the vendor master's payment terms
+(the term here is implied), reason codes for blocks, deletions and invoice cancellations, real invoice amounts and
+payment dates from finance, and what changed with requisitions in September 2018.
+
+## Limitations
+
+- **Values aren't money.** The value field is anonymised and stamped on each event, so only shares of value hold. There's no euro figure or savings estimate here, and the publisher's rule that values must match can't be tested.
+- **Clearing isn't payment.** The log has no payment dates, bank payments or approval limits. Reading a cleared correction as nothing left to pay is an inference.
+- **Six months measured, from one company in 2018.** Parts 2 to 4 use items created January to June 2018, because the log stops in January 2019. Part 2 also checked July to September, with less follow-up. The process has likely changed since, so the methods carry over but the numbers don't.
+- **Terms and "one at a time" are inferred.** Payment terms come from each vendor's fastest 5% of invoices, and bulk work is told apart from hand work by timing. Both were stress-tested, and both would be replaced by the vendor master and workflow data.
+- **Vendor events have dates but no times, and same-day events count as in order,** so a same-day breach would be missed.
+- **The log rarely says why.** Why a block was set, a PO changed or deleted, or an invoice cancelled are all readings of what's visible, and each part says so where it applies.
+- **Extra days aren't proof of cause.** They compare items at the same vendor with invoices dated the same month, so the term and the run are about the same, but other differences remain.
+- **Touches count how often people step in, not how long it takes,** so there's no cost in hours.
+- **Requisition records jump in September 2018,** so no trend in "PO without requisition" is reported across that break.
+
+Each report's own Limits section has the full detail.
+
 ## Plan
 
 1. ✅ **Source, snapshot and profile.** Verified download, strict parser, data-quality traps.
@@ -277,7 +334,7 @@ anything was changed, deleted or cancelled, and extra days compare similar items
    wait comes from terms, the run calendar and late steps.
 4. ✅ **Rework and automation.** Changes, cancellations and repeat work by vendor and spend area,
    with bulk runs kept apart from hand work, turned into a ranked list of what to fix first.
-5. **CI and write-up.** Automated checks, TL;DR, ranked recommendations and limitations.
+5. ✅ **CI and write-up.** Automated checks on every push, TL;DR, ranked recommendations and limitations.
 
 ## How to run
 
@@ -298,16 +355,17 @@ python -m scripts.build_snapshot  # about 3 minutes
 
 ## Tests
 
-210 tests. The headline numbers are recounted in plain pandas, with none of the project's SQL. Each
+218 tests. The headline numbers are recounted in plain pandas, with none of the project's SQL. Each
 compliance rule also runs on a small hand-written log, so it can be seen both failing and passing,
 including edge cases such as a Dutch midnight, a same-day receipt and a bulk run. The wait breakdown
 and the rework flags are worked out by hand on small logs too, and the waiting-time estimate is
 checked against a plain day-by-day loop on the real data. The parser and downloader are tested on small hand-written files,
 including truncated and wrong copies. A rebuild from the raw log must match the committed files byte
-for byte, and the reports and charts must match a fresh run. To check that the tests can fail, 98
-bugs were planted one at a time, such as a wrong follow-up window or ignoring a reversal. 92 were
-caught straight away. The other 6 showed gaps in the tests, so tests were added and they're now
-caught too.
+for byte, and the reports and charts must match a fresh run. The TL;DR and the recommendations are
+checked against the result files, so a figure in this README can't drift from the reports. To check
+that the tests can fail, 122 bugs were planted one at a time, such as a wrong follow-up window,
+ignoring a reversal or a mistyped figure in the TL;DR. 113 were caught straight away. The other 9
+showed gaps in the tests, so tests were added and they're now caught too.
 
 ## Layout
 
