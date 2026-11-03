@@ -1,6 +1,6 @@
 # Purchase-to-pay process mining: where invoices stall and rules break
 
-> **Status: in progress.** Parts 1, 2 and 3 of 5 are done (source and profile, compliance, bottlenecks). See the [plan](#plan).
+> **Status: in progress.** Parts 1 to 4 of 5 are done (source and profile, compliance, bottlenecks, rework and automation). See the [plan](#plan).
 
 A company's purchase-to-pay process is meant to be simple: raise an order, receive the goods, match
 the invoice, pay. In a real ERP system it rarely is. This project uses **process mining** on a real
@@ -214,6 +214,60 @@ reason visible in the log, and those add about 7 days.
 The log shows blocks being removed but rarely set, so the unexplained ones may have a reason that
 isn't recorded, and the extra days compare similar items without proving cause.
 
+## Part 4: what gets redone, and what to automate first
+
+Full results: [`results/REWORK.md`](results/REWORK.md). Supporting tables:
+[`results/automation_candidates.csv`](results/automation_candidates.csv) and
+[`results/rework_by_area.csv`](results/rework_by_area.csv).
+
+This part asks how much work is redone, and which hand work would repay fixing first, on the same
+3-way items as Part 3. Following Part 1's rule, bulk runs are kept apart from one-at-a-time work. That
+work is counted in **touches**: one account handling one document in one minute counts once, however many
+lines it holds. The log has no task durations, so touches count how often people step in, not hours.
+
+**18.9% of items have some rework, and they hold 47.2% of value,** because bigger items are changed more.
+But most hand work is the core process. Of 188,465 one-at-a-time touches in six months, 11.3% are
+rework, and goods receipts and invoice recording alone are 64.6%.
+
+![Hand work by step](results/charts/10_hand_work_by_step.png)
+
+**One kind of rework costs time: a price changed after the invoice is in.** On 1,860 items (14.6% of value),
+a payment block usually came off right after the change, often the same day. That looks like a match loop:
+the invoice price didn't match the PO, so it was blocked until someone fixed the PO. Of the items that can
+be timed, 92.2% were blocked, against 25.0% with no rework, and they cleared 4.0 days later than
+comparable items. A price fixed before the invoice arrives isn't blocked more than usual. Quantity
+changes are the most common rework, but they show no added wait.
+
+![Extra days by kind of change](results/charts/11_rework_delay.png)
+
+**Some rework is pure waste.** 4,448 items were deleted before anything was received or invoiced, mostly
+by the buyer who raised them, within days. 2,621 items had an invoice cancelled and then recorded again.
+
+| Rank | What to fix | Why |
+|---|---|---|
+| 1 | The late price-change loop | 1,860 items, 14.6% of value, +4.0 days and usually a block. Fix PO prices before the invoice arrives. |
+| 2 | Invoice recording | 58,364 touches by 25 accounts, and late recording was 38.1% of overrun days in Part 3. Spread over 1,447 vendors, so it's e-invoicing or invoice capture for the whole team. |
+| 3 | Order confirmations | Small, but 10 vendors send 75.7% of them, so taking them electronically is quick to reach. |
+| 4 | POs withdrawn unused | 4,448 items. Ask buyers why on a sample, then decide if a duplicate check is worth it. |
+| 5 | Quantity changes | The largest rework, but no added wait and concentrated at a few vendors. Check whether a scheduling agreement fits. |
+
+### So what for the business?
+
+- **Fix when the price is set, not how fast invoices clear.** The one piece of rework that delays payment
+  is a PO price corrected after the invoice. Up-to-date contract prices, or an agreed price tolerance,
+  stop the block before it starts. Packaging, the largest spend area, holds about a third of these items.
+- **The biggest saving in hand work is invoice capture.** Invoice recording is nearly a third of all hand work, done by
+  a small team, and it was a cause of late payments in Part 3. It's a whole-process project, not a few
+  vendor deals.
+- **Don't treat all rework as failure.** Quantity changes are the most common rework but show no added wait.
+  Ask purchasing whether they're simply how rolling orders are managed before trying to cut them.
+- **Ask for one thing first:** the reason codes behind blocks, deletions and invoice cancellations, if the
+  system keeps them. They'd turn these inferences into facts.
+
+**What this can't show:** how long each touch takes, so no cost in hours or money. "One at a time" is
+inferred from timing, though a stricter bulk rule barely changes the big steps. The log doesn't say why
+anything was changed, deleted or cancelled, and extra days compare similar items without proving cause.
+
 ## Plan
 
 1. ✅ **Source, snapshot and profile.** Verified download, strict parser, data-quality traps.
@@ -221,8 +275,8 @@ isn't recorded, and the extra days compare similar items without proving cause.
    of the clearing gap and a review list.
 3. ✅ **Bottlenecks.** A process map, waiting times that count unfinished items, and how much of the
    wait comes from terms, the run calendar and late steps.
-4. **Rework and automation.** Changes, cancellations and repeat work by vendor and spend area,
-   turned into a ranked list of what to fix first.
+4. ✅ **Rework and automation.** Changes, cancellations and repeat work by vendor and spend area,
+   with bulk runs kept apart from hand work, turned into a ranked list of what to fix first.
 5. **CI and write-up.** Automated checks, TL;DR, ranked recommendations and limitations.
 
 ## How to run
@@ -234,7 +288,8 @@ source .venv/bin/activate
 python -m scripts.profile_log     # Part 1 report from the committed snapshot (about 25 seconds)
 python -m scripts.compliance      # Part 2 report, rule table and review list (about 20 seconds)
 python -m scripts.bottlenecks     # Part 3 report, tables and charts (about 20 seconds)
-pytest                            # about 3 minutes
+python -m scripts.rework          # Part 4 report, tables and charts (about 20 seconds)
+pytest                            # about 4 minutes
 
 # Optional, to rebuild the snapshot from the source:
 python -m scripts.download_data   # 17-730 MB depending on the host, verified by MD5
@@ -243,15 +298,15 @@ python -m scripts.build_snapshot  # about 3 minutes
 
 ## Tests
 
-172 tests. The headline numbers are recounted in plain pandas, with none of the project's SQL. Each
+210 tests. The headline numbers are recounted in plain pandas, with none of the project's SQL. Each
 compliance rule also runs on a small hand-written log, so it can be seen both failing and passing,
 including edge cases such as a Dutch midnight, a same-day receipt and a bulk run. The wait breakdown
-is worked out by hand on a small log too, and the waiting-time estimate is checked against a plain
-day-by-day loop on the real data. The parser and downloader are tested on small hand-written files,
+and the rework flags are worked out by hand on small logs too, and the waiting-time estimate is
+checked against a plain day-by-day loop on the real data. The parser and downloader are tested on small hand-written files,
 including truncated and wrong copies. A rebuild from the raw log must match the committed files byte
-for byte, and the reports and charts must match a fresh run. To check that the tests can fail, 86
-bugs were planted one at a time, such as a wrong follow-up window or ignoring a reversal. 83 were
-caught straight away. The other 3 showed gaps in the tests, so tests were added and they're now
+for byte, and the reports and charts must match a fresh run. To check that the tests can fail, 98
+bugs were planted one at a time, such as a wrong follow-up window or ignoring a reversal. 92 were
+caught straight away. The other 6 showed gaps in the tests, so tests were added and they're now
 caught too.
 
 ## Layout
@@ -259,7 +314,7 @@ caught too.
 ```
 data/              snapshot (events, cases) and SNAPSHOT.json with its hashes
 p2p/               source details, XES parser, DuckDB helper, waiting-time estimate
-scripts/           download, snapshot, profile, compliance and bottleneck steps
+scripts/           download, snapshot, profile, compliance, bottleneck and rework steps
 sql/               table definitions and every query behind the report
 results/           generated report and charts
 tests/             pytest suite
